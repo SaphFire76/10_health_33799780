@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appData.name %></title>
+</head>
+<body>
+    <h1><%= userRole %> Dashboard</h1>
+    <p>Welcome to your dashboard!</p>
+    <% if (city.cod == 200) { %>
+    <h2>Current Weather in <%= city.name %>: <%= city.weather[0].description %></h2>
+    <ul>
+        <li>Temperature: <%= city.main.temp %></li>
+        <li>Feels like: <%= city.main.feels_like %></li>
+        <li>Humidity: <%= city.main.humidity %></li>
+        <li>Wind speed:<%= city.wind.speed %></li>
+    </ul>
+    <% } else { %>
+    <p>Weather data is not available at the moment.</p>
+    <% } %>
+    <h2>Your Upcoming Appointments:</h2>
+    <% if (upcomings.length === 0) { %>
+        <p>You have no upcoming appointments.</p>
+    <% } %>
+    <% for (let i = 0; i < upcomings.length; i++) { %>
+        <% let upcoming = upcomings[i]; %>
+        <ul>
+            <li><%= formatSlot(upcoming.slot) %> <a href="../<%= userRole %>/edit_appointment/<%= upcoming.id %>">Edit/ Cancel your appointment</a></li>
+        </ul>
+    <% } %>
+    <h2>Your Past Appointments:</h2>
+    <% if (pasts.length === 0) { %>
+        <p>You have no past appointments.</p>
+    <% } %>
+    <% for (let i = 0; i < pasts.length; i++) { %>
+        <% let past = pasts[i]; %>
+        <ul>
+            <li><%= formatSlot(past.slot) %></li>
+        </ul>
+    <% } %>
+    <% if (userRole === 'patient') {%>
+        <p><a href="../patient/book">Book an appointment</a></p>
+    <% } %>
+    <p><a href="../users/profile">Profile</a></p>
+</body>
+</html>

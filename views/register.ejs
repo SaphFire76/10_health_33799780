@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appData.name %></title>
+</head>
+<body>
+    <h1>Register for <%= appData.name %></h1>
+    <form method="POST" action="register_patient">
+        <p>First Name: <input id="first" type="text" name="first" /></p>
+        <p>Middle Name: <input id="middle" type="text" name="middle"></p>
+        <p>Last Name: <input id="last" type="text" name="last" /></p>
+        <p>Phone: <input id="phone" type="tel" name="phone" /></p>
+        <p>Email: <input id="email" type="email" name="email" /></p>
+        <p>Password: <input id="password" type="text" name="password" /></p>
+        <input type="submit" value="Register" />
+    </form>
+</body>
+</html>

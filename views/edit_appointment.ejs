@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appData.name %></title>
+</head>
+<body>
+    <h1>Edit Appointment</h1>
+    <form action="../cancel" method="POST">
+        <input type="hidden" name="appointment" value="<%= appointment %>">
+
+        <button type="submit" onclick="return confirm('Are you sure you want to cancel this appointment?');">
+            Cancel Appointment
+        </button>
+    </form>
+    <h1>Change Appointment Time</h1>
+    <form action="../change_date" method="GET">
+        <input type="hidden" name="appointment" value="<%= appointment %>">
+        <%
+            let tmrw = new Date();
+            tmrw.setDate(tmrw.getDate() + 1);
+            tmrw = tmrw.toISOString().split('T')[0];
+
+            let max = new Date();
+            max.setMonth(max.getMonth() + 6);
+            max = max.toISOString().split('T')[0];
+        %>
+        <p>What date do you prefer?</p>
+        <input type="date" id="date" name="date" value="<%= tmrw %>" min="<%= tmrw %>" max="<%= max %>" required>
+        <input type="submit" value="Find available slots">
+    </form>
+    <% if (slots.length != 0) { %>
+        <h2>Available slots:</h2>
+        <form action="confirm_change" method="POST">
+            <input type="hidden" name="date" value="<%= date %>">
+            <input type="hidden" name="appointment" value="<%= appointment %>">
+            <% for (let i = 0; i < slots.length; i++) { %>
+                <% let slot = slots[i]; %>
+                <input type="radio" id="slot<%= i %>" name="slot" value="<%= slot %>" required>
+                <label for="slot<%= i %>"><%= slot %></label><br>
+            <% } %>
+            <input type="submit" value="Confirm Booking">
+        </form>
+    <% } %>
+</body>
+</html>
