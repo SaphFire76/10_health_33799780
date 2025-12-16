@@ -3,6 +3,7 @@ const express = require("express")
 const { check, validationResult } = require('express-validator');
 const router = express.Router()
 const bcrypt = require('bcrypt');
+const env = require('dotenv').config();
 
 // Function to redirect to login page if not logged in as patient
 const isPatient = (req, res, next) => {
@@ -69,6 +70,7 @@ const validateRegistration = [
 
     // Phone: Check for numbers and length (UK/International)
     check('phone')
+        .optional({ checkFalsy: true })
         .trim()
         .isMobilePhone('en-GB').withMessage('Invalid phone number.') // You can specify locale: .isMobilePhone('en-GB')
         .escape(),
@@ -86,6 +88,7 @@ router.get('/register', function (req, res, next) {
 // Route handler for patient register form submission
 router.post('/register_patient', validateRegistration, function (req, res, next) {
     const errors = validationResult(req);
+    const pepper = process.env.PEPPER;
     
     if (!errors.isEmpty()) {
         let userData = { ...req.body };
@@ -100,7 +103,7 @@ router.post('/register_patient', validateRegistration, function (req, res, next)
     else {
         // saving data in database
         const saltRounds = 12;
-        const plainPassword = req.body.password;
+        const plainPassword = pepper + req.body.password;
         
         bcrypt.hash(plainPassword, saltRounds, function(err, hashedPassword) {
             // Store hashed password in your database.
@@ -152,6 +155,8 @@ router.post('/login_patient', validateLogin, function (req, res, next) {
         let sqlquery = "SELECT id, hashedPass FROM patients WHERE username=?";
         // let email = [req.body.email];
         let email = [req.body.username];
+        const pepper = process.env.PEPPER;
+        const plainPassword = pepper + req.body.password;
 
         db.query(sqlquery, email, (err, result) => {
             if(err){
@@ -163,7 +168,7 @@ router.post('/login_patient', validateLogin, function (req, res, next) {
             }
             else{
                 let hashedPassword = result[0].hashedPass;
-                bcrypt.compare(req.body.password, hashedPassword, function(err, isMatch) {
+                bcrypt.compare(plainPassword, hashedPassword, function(err, isMatch) {
                     if (err) {
                         next(err)
                     }
@@ -196,6 +201,8 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
         // let email = [req.body.email];
         let sqlquery = "SELECT id, hashedPass FROM staff WHERE username=?";
         let email = [req.body.username];
+        const pepper = process.env.PEPPER;
+        const plainPassword = pepper + req.body.password;
 
         db.query(sqlquery, email, (err, result) => {
             if(err){
@@ -207,7 +214,7 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
             }
             else{
                 let hashedPassword = result[0].hashedPass;
-                bcrypt.compare(req.body.password, hashedPassword, function(err, isMatch) {
+                bcrypt.compare(plainPassword, hashedPassword, function(err, isMatch) {
                     if (err) {
                         next(err)
                     }

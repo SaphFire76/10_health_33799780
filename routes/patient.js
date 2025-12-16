@@ -6,6 +6,7 @@ const request = require('request');
 const bcrypt = require('bcrypt');
 const { isPatient } = require("./users");
 const { audit_log } = require("./users");
+const env = require('dotenv').config();
 
 // Function to generate all possible appointment slots
 function populate_slots() {
@@ -130,14 +131,57 @@ router.get('/book_date', isPatient, validateDate, function(req, res, next) {
     });
 });
 
+const validateBooking = [
+    // Date: Must be a valid date in YYYY-MM-DD format
+    check('date')
+        .notEmpty().withMessage('Date is required.')
+        .isISO8601().withMessage('Invalid date format.')
+        .custom((value) => {
+            let tmrw = new Date();
+            tmrw.setDate(tmrw.getDate() + 1);
+            tmrw = tmrw.toISOString().split('T')[0];
+
+            let max = new Date();
+            max.setMonth(max.getMonth() + 6);
+            max = max.toISOString().split('T')[0];
+
+            const inputDate = new Date(value);
+
+            if (value < tmrw) {
+                throw new Error('Date must be at least one day in the future.');
+            }
+            if (value > max) {
+                throw new Error('Date cannot be more than six months in the future.');
+            }
+
+            return true;
+        }),
+    
+    // Reason: Not empty, max length 500 characters
+    check('reason')
+        .notEmpty().withMessage('Reason for appointment is required.')
+        .isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters.')
+        .trim()
+        .escape(),
+
+    check('slot')
+        .notEmpty().withMessage('Time is required.')
+];
+
 // Route handler for confirming a booking
-router.post('/confirm_booking', isPatient, function(req, res, next) {
+router.post('/confirm_booking', isPatient, validateBooking, function(req, res, next) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.render('book.ejs', {slots: [], userRole: req.session.role, errors: errors.array()});
+        return;
+    }
     let date = req.body.date;
     let time = req.body.slot;
+    let reason = req.body.reason;
     let userID = req.session.userID;
-    let sqlquery = "INSERT INTO appointments (patientID, slot) VALUES (?, ?)";
+    let sqlquery = "INSERT INTO appointments (patientID, slot, reason) VALUES (?, ?, ?)";
 
-    let searchData = [userID, `${date} ${time}:00`];
+    let searchData = [userID, `${date} ${time}:00`, reason];
 
     db.query(sqlquery, searchData, function(err, result){
         if(err){
@@ -293,6 +337,7 @@ const profileValidation = [
 
     // Phone: Check for numbers and length (UK/International)
     check('phone')
+        .optional({ checkFalsy: true })
         .trim()
         .isMobilePhone('en-GB').withMessage('Invalid phone number.') // You can specify locale: .isMobilePhone('en-GB')
         .escape(),
@@ -367,6 +412,10 @@ router.post('/change_password', isPatient, validatePasswordChange, function(req,
         if (newPassword != confirmPassword) {
             res.render('profile.ejs', {user: req.body, errors: [{msg: "New passwords do not match."}]});
         }
+
+        const pepper = process.env.PEPPER;
+        currentPassword = pepper + currentPassword;
+        newPassword = pepper + newPassword;
 
         db.query(sqlquery, [userID], function(err, result) {
             if(err){

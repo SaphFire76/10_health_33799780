@@ -222,8 +222,30 @@ router.get('/search_patients', isStaff, function(req, res, next) {
     });
 });
 
+const validatePatientSearch = [
+    // Patient Name: Must not be empty
+    check('patientName')
+        .notEmpty().withMessage('Please enter a name to search for.')
+        .matches(/^[a-zA-Z '\-]+$/).withMessage('Patient name can only contain letters, spaces, hyphens, and apostrophes.')
+        .escape(),
+];
+
 // Route handler for processing patient search
-router.get('/search', isStaff, function(req, res, next) {
+router.get('/search', isStaff, validatePatientSearch, function(req, res, next) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        let sqlquery = "SELECT id, fname, mname, lname FROM patients";
+
+        db.query(sqlquery, function(err, result){
+            if(err){
+                next(err);
+            }
+            else {
+                return res.render('search_patients.ejs', {patients: [], errors: errors.array()});
+            }
+        });
+        return;
+    }
     let patient = req.query.patientName;
     let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE fname LIKE ? OR mname LIKE ? OR lname LIKE ?";
 
@@ -329,14 +351,68 @@ router.get('/book_date', isStaff, validateDate, function(req, res, next) {
     });
 });
 
+const validateBooking = [
+    // Date: Must be a valid date in YYYY-MM-DD format
+    check('date')
+        .notEmpty().withMessage('Date is required.')
+        .isISO8601().withMessage('Invalid date format.')
+        .custom((value) => {
+            let tmrw = new Date();
+            tmrw.setDate(tmrw.getDate() + 1);
+            tmrw = tmrw.toISOString().split('T')[0];
+
+            let max = new Date();
+            max.setMonth(max.getMonth() + 6);
+            max = max.toISOString().split('T')[0];
+
+            const inputDate = new Date(value);
+
+            if (value < tmrw) {
+                throw new Error('Date must be at least one day in the future.');
+            }
+            if (value > max) {
+                throw new Error('Date cannot be more than six months in the future.');
+            }
+
+            return true;
+        }),
+    
+    // Reason: Not empty, max length 500 characters
+    check('reason')
+        .notEmpty().withMessage('Reason for appointment is required.')
+        .isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters.')
+        .trim()
+        .escape(),
+
+    check('slot')
+        .notEmpty().withMessage('Time is required.')
+];
+
 // Route handler for confirming a booking
-router.post('/confirm_booking', isStaff, function(req, res, next) {
+router.post('/confirm_booking', isStaff, validateBooking, function(req, res, next) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE id = ?";
+        let patientID = req.body.patientID;
+        let userRole = req.session.role;
+
+        db.query(sqlquery, [patientID], function(err, result){
+            if(err){
+                next(err);
+            }
+            else {
+                return res.render('book.ejs', {slots: [], userRole: userRole, patient: result[0], errors: errors.array()});
+            }
+        });
+        return;
+    }
     let date = req.body.date;
     let time = req.body.slot;
+    let reason = req.body.reason;
     let userID = req.body.patientID;
-    let sqlquery = "INSERT INTO appointments (patientID, slot) VALUES (?, ?)";
+    let sqlquery = "INSERT INTO appointments (patientID, slot, reason) VALUES (?, ?, ?)";
 
-    let searchData = [userID, `${date} ${time}:00`];
+    let searchData = [userID, `${date} ${time}:00`, reason];
 
     db.query(sqlquery, searchData, function(err, result){
         if(err){
