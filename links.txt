@@ -1,1 +1,9 @@
 home=https://www.doc.gold.ac.uk/usr/407/
+about=https://www.doc.gold.ac.uk/usr/407/about
+register=https://www.doc.gold.ac.uk/usr/407/users/register
+login=https://www.doc.gold.ac.uk/usr/407/users/login
+patient_dashboard=https://www.doc.gold.ac.uk/usr/407/patient/dashboard
+patient_book=https://www.doc.gold.ac.uk/usr/407/patient/book
+staff_dashboard=https://www.doc.gold.ac.uk/usr/407/staff/dashboard
+profile=https://www.doc.gold.ac.uk/usr/407/patient/profile
+search_patients=https://www.doc.gold.ac.uk/usr/407/staff/search_patients
