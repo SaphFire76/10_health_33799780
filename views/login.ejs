@@ -19,5 +19,15 @@
         <p>Password: <input id="password" type="text" name="password" /></p>
         <input type="submit" value="Login" />
     </form>
+    <% if (typeof errors != 'undefined' && errors.length > 0) { %>
+        <div class="error-box" style="background: #ffdddd; padding: 10px; border: 1px solid red; margin-bottom: 10px;">
+            <h3>Please correct the following errors:</h3>
+            <ul>
+                <% errors.forEach(function(error) { %>
+                    <li><%= error.msg %></li>
+                <% }) %>
+            </ul>
+        </div>
+    <% } %>
 </body>
 </html>

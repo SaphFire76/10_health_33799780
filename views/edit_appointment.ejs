@@ -15,7 +15,7 @@
         </button>
     </form>
     <h1>Change Appointment Time</h1>
-    <form action="../change_date" method="GET">
+    <form action="/staff/change_date" method="GET">
         <input type="hidden" name="appointment" value="<%= appointment %>">
         <%
             let tmrw = new Date();
@@ -27,7 +27,7 @@
             max = max.toISOString().split('T')[0];
         %>
         <p>What date do you prefer?</p>
-        <input type="date" id="date" name="date" value="<%= tmrw %>" min="<%= tmrw %>" max="<%= max %>" required>
+        <input type="date" id="date" name="date" >
         <input type="submit" value="Find available slots">
     </form>
     <% if (slots.length != 0) { %>
@@ -42,6 +42,16 @@
             <% } %>
             <input type="submit" value="Confirm Booking">
         </form>
+    <% } %>
+    <% if (typeof errors != 'undefined' && errors.length > 0) { %>
+        <div class="error-box" style="background: #ffdddd; padding: 10px; border: 1px solid red; margin-bottom: 10px;">
+            <h3>Please correct the following errors:</h3>
+            <ul>
+                <% errors.forEach(function(error) { %>
+                    <li><%= error.msg %></li>
+                <% }) %>
+            </ul>
+        </div>
     <% } %>
 </body>
 </html>

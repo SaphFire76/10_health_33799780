@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appData.name %></title>
+</head>
+<body>
+    <h1>Search Patients</h1>
+    <form action="search" method="GET">
+        <div class="form-group">
+            <label for="patientName">Enter patient name:</label>
+            <input type="text" id="patientName" name="patientName" required>
+        </div>
+        <button type="submit">Search</button>
+    </form>
+    <% for (let i = 0; i < patients.length; i++) { %>
+        <% let patient = patients[i]; %>
+        <ul>
+            <li>Name: <%= patient.fname %> <%= patient.mname %> <%= patient.lname %></li>
+            <li><a href="../staff/patient_details/<%= patient.id %>">View More Patient Details</a></li>
+            <li><a href="../staff/book/<%= patient.id %>">Book Appointment for this Patient</a></li>
+        </ul>
+    <% } %>
+</body>
+</html>

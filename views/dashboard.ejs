@@ -26,7 +26,10 @@
     <% for (let i = 0; i < upcomings.length; i++) { %>
         <% let upcoming = upcomings[i]; %>
         <ul>
-            <li><%= formatSlot(upcoming.slot) %> <a href="../<%= userRole %>/edit_appointment/<%= upcoming.id %>">Edit/ Cancel your appointment</a></li>
+            <% if (userRole === 'staff') { %>
+            <li><%= upcoming.fname %> <%= upcoming.mname %> <%= upcoming.lname %></li>
+            <% } %>
+            <li><%= formatSlot(upcoming.slot) %> <a href="../<%= userRole %>/appointment_details/<%= upcoming.id %>">View Appointment Details</a> <a href="../<%= userRole %>/edit_appointment/<%= upcoming.id %>">Edit/ Cancel Appointment</a></li>
         </ul>
     <% } %>
     <h2>Your Past Appointments:</h2>
@@ -36,12 +39,18 @@
     <% for (let i = 0; i < pasts.length; i++) { %>
         <% let past = pasts[i]; %>
         <ul>
-            <li><%= formatSlot(past.slot) %></li>
+            <% if (userRole === 'staff') { %>
+            <li><%= past.fname %> <%= past.mname %> <%= past.lname %></li>
+            <% } %>
+            <li><%= formatSlot(past.slot) %> <a href="../<%= userRole %>/appointment_details/<%= past.id %>">View Appointment Details</a></li>
         </ul>
     <% } %>
     <% if (userRole === 'patient') {%>
+        <p><a href="../patient/profile">Profile</a></p>
         <p><a href="../patient/book">Book an appointment</a></p>
     <% } %>
-    <p><a href="../users/profile">Profile</a></p>
+    <% if (userRole === 'staff') {%>
+        <p><a href="../staff/search_patients">Patients</a></p>
+    <% } %>
 </body>
 </html>

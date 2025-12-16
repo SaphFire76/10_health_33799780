@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appData.name %></title>
+</head>
+<body>
+    <h1>Appointment Details</h1>
+    <% if (userRole === 'staff') { %>
+        <h3>Patient:</h3>
+        <ul>
+            <li>Name: <%= appointment.fname %> <%= appointment.mname %> <%= appointment.lname %></li>
+            <li>Email: <%= appointment.email %></li>
+            <li>Phone: <%= appointment.phone %></li>
+        </ul>
+    <% } %>
+    <h3>Appointment:</h3>
+    <ul>
+        <li>Time: <%= formatSlot(appointment.slot) %> </li>
+        <li>Reason: <%= appointment.reason %> </li>
+    </ul>
+</body>
+</html>

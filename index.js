@@ -85,9 +85,5 @@ app.use('/patient', patientRoutes);
 const staffRoutes = require('./routes/staff');
 app.use('/staff', staffRoutes);
 
-// // Load the route handlers for /api
-// const apiRoutes = require('./routes/api')
-// app.use('/api', apiRoutes)
-
 // Start the web app listening
 app.listen(port, () => console.log(`Booker app listening on port ${port}!`))

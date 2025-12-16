@@ -6,8 +6,13 @@
     <title><%= appData.name %></title>
 </head>
 <body>
-    <h1>Book an appointment</h1>
-    <form action="book_date" method="GET">
+    <% if (userRole === 'patient') { %>
+        <h1>Book an appointment</h1>
+        <form action="/patient/book_date" method="GET">
+    <% } else { %>
+        <h1>Book an appointment for <%= patient.fname %> <%= patient.mname %> <%= patient.lname %></h1>
+        <form action="/staff/book_date" method="GET">
+    <% } %>
         <%
             let tmrw = new Date();
             tmrw.setDate(tmrw.getDate() + 1);
@@ -16,14 +21,29 @@
             let max = new Date();
             max.setMonth(max.getMonth() + 6);
             max = max.toISOString().split('T')[0];
+
+            let defaultDate;
+
+            if (typeof date !== 'undefined') {
+                defaultDate = date;
+            } 
+            else {
+                defaultDate = tmrw;
+            }
         %>
+        <% if (userRole === 'staff') { %>
+            <input type="hidden" name="patientID" value="<%= patient.id %>">
+        <% } %>
         <p>What date do you prefer?</p>
-        <input type="date" id="date" name="date" value="<%= tmrw %>" min="<%= tmrw %>" max="<%= max %>" required>
+        <input type="date" id="date" name="date" value="<%= defaultDate %>" min="<%= tmrw %>" max="<%= max %>" required>
         <input type="submit" value="Find available slots">
     </form>
     <% if (slots.length != 0) { %>
         <h2>Available slots:</h2>
         <form action="confirm_booking" method="POST">
+            <% if (userRole === 'staff') { %>
+                <input type="hidden" name="patientID" value="<%= patient.id %>">
+            <% } %>
             <input type="hidden" name="date" value="<%= date %>">
             <% for (let i = 0; i < slots.length; i++) { %>
                 <% let slot = slots[i]; %>
@@ -32,6 +52,16 @@
             <% } %>
             <input type="submit" value="Confirm Booking">
         </form>
+    <% } %>
+    <% if (typeof errors != 'undefined' && errors.length > 0) { %>
+        <div class="error-box" style="background: #ffdddd; padding: 10px; border: 1px solid red; margin-bottom: 10px;">
+            <h3>Please correct the following errors:</h3>
+            <ul>
+                <% errors.forEach(function(error) { %>
+                    <li><%= error.msg %></li>
+                <% }) %>
+            </ul>
+        </div>
     <% } %>
 </body>
 </html>

@@ -1,9 +1,10 @@
 // Create a new router
 const express = require("express")
-// const { check, validationResult } = require('express-validator');
+const { check, validationResult } = require('express-validator');
 const router = express.Router()
 const request = require('request');
 const { isStaff } = require("./users");
+const { audit_log } = require("./users");
 
 // Function to generate all possible appointment slots
 function populate_slots() {
@@ -34,7 +35,10 @@ function populate_slots() {
 // Route handler for patient dashboard
 router.get('/dashboard', isStaff, function(req, res, next) {
     // Fetch patient appointments from the database
-    let sqlquery = "SELECT * FROM appointments ORDER BY slot";
+    // let sqlquery = "SELECT * FROM appointments ORDER BY slot";
+    let sqlquery = `SELECT patients.fname, patients.mname, patients.lname, appointments.* FROM patients 
+    JOIN appointments ON patients.id = appointments.patientID 
+    ORDER BY appointments.slot`;
     let userRole = req.session.role;
 
     db.query(sqlquery, function(err, result){
@@ -69,6 +73,33 @@ router.get('/dashboard', isStaff, function(req, res, next) {
     });
 });
 
+const validateDate = [
+    // Date: Must be a valid date in YYYY-MM-DD format
+    check('date')
+        .notEmpty().withMessage('Date is required.')
+        .isISO8601().withMessage('Invalid date format.')
+        .custom((value) => {
+            let tmrw = new Date();
+            tmrw.setDate(tmrw.getDate() + 1);
+            tmrw = tmrw.toISOString().split('T')[0];
+
+            let max = new Date();
+            max.setMonth(max.getMonth() + 6);
+            max = max.toISOString().split('T')[0];
+
+            const inputDate = new Date(value);
+
+            if (value < tmrw) {
+                throw new Error('Date must be at least one day in the future.');
+            }
+            if (value > max) {
+                throw new Error('Date cannot be more than six months in the future.');
+            }
+
+            return true;
+        })
+];
+
 // Route handlers for editing or cancelling an appointment
 router.get('/edit_appointment/:id', isStaff, function(req, res, next) {
     let appointmentID = req.params.id;
@@ -101,13 +132,18 @@ router.post('/cancel', isStaff, function(req, res, next) {
             next(err);
         } 
         else {
+            audit_log(null, req.session.userID, 'Cancelled Appointment', appointmentID, `Appointment cancelled by staff`, req.ip);
             res.render('success.ejs', {subject: 'Appointment Cancelled', redirect: 'dashboard', redirectLink: '../staff/dashboard'});
         }
     });
 });
 
 // Route handlers for changing appointment date/time
-router.get('/change_date', isStaff, function(req, res, next) {
+router.get('change_date', isStaff, validateDate, function(req, res, next) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.render('edit_appointment.ejs', {appointment: req.query.appointment, slots: [], errors: errors.array()});
+    }
     let appointmentID = req.query.appointment;
     let date = req.query.date;
     let allSlots = populate_slots();
@@ -141,10 +177,178 @@ router.post('/confirm_change', isStaff, function(req, res, next) {
             next(err);
         } 
         else {
+            audit_log(null, req.session.userID, 'Changed Appointment Time', appointmentID, `Appointment changed to ${date} at ${time} by staff`, req.ip);
             res.render('success.ejs', {subject: 'Appointment Time Changed', redirect: 'dashboard', redirectLink: '../staff/dashboard'});
         }
     });
 });
+
+// Route handler for viewing appointment details
+router.get('/appointment_details/:id', isStaff, function(req, res, next) {
+    let appointmentID = req.params.id;
+    let userRole = req.session.role;
+    let sqlquery = `SELECT * FROM patients 
+    JOIN appointments ON patients.id = appointments.patientID 
+    WHERE appointments.id = ?`;
+
+    let searchData = [appointmentID];
+
+    db.query(sqlquery, searchData, function(err, result){
+        if(err){
+            next(err);
+        } 
+        else if (result.length == 0) {
+            res.send('Appointment not found.');
+        }
+        else {
+            // console.log(result);
+            audit_log(null, req.session.userID, 'Viewed Appointment Details', appointmentID, `Staff viewed details of appointment on ${result[0].slot} of patient: ${result[0].fname} ${result[0].lname}, with email: ${result[0].email}.`, req.ip);
+            res.render('appointment_details.ejs', {appointment: result[0], userRole: userRole});
+        }
+    });
+});
+
+// Route handlers for searching patients
+router.get('/search_patients', isStaff, function(req, res, next) {
+    let sqlquery = "SELECT id, fname, mname, lname FROM patients";
+
+    db.query(sqlquery, function(err, result){
+        if(err){
+            next(err);
+        }
+        else {
+            res.render('search_patients.ejs', {patients: result});
+        }
+    });
+});
+
+// Route handler for processing patient search
+router.get('/search', isStaff, function(req, res, next) {
+    let patient = req.query.patientName;
+    let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE fname LIKE ? OR mname LIKE ? OR lname LIKE ?";
+
+    let searchData = [`%${patient}%`, `%${patient}%`, `%${patient}%`];
+
+    db.query(sqlquery, searchData, function(err, result){
+        if(err){
+            next(err);
+        } 
+        else {
+            res.render('search_patients.ejs', {patients: result});
+        }
+    });
+});
+
+// Route handler for viewing patient details
+router.get('/patient_details/:id', isStaff, function(req, res, next) {
+    let patientID = req.params.id;
+    let sqlquery = "SELECT * FROM patients WHERE id = ?";
+
+    let searchData = [patientID];
+
+    db.query(sqlquery, searchData, function(err, result){
+        if(err){
+            next(err);
+        }
+        else {
+            audit_log(null, req.session.userID, 'Viewed Patient Details', null, `Staff viewed details of patient: ${result[0].fname} ${result[0].lname}, with email: ${result[0].email}.`, req.ip);
+            let sqlquery = "SELECT * FROM appointments WHERE patientID = ? ORDER BY slot DESC";
+
+            db.query(sqlquery, [patientID], function(err, appointments){
+                if(err){
+                    next(err);
+                }
+                else {
+                    res.render('patient_details.ejs', {patient: result[0], appointments: appointments});
+                }
+            });
+        }
+    });
+});
+
+// Route handlers for booking an appointment for a patient
+router.get('/book/:id', isStaff, function(req, res, next) {
+    let patientID = req.params.id;
+    let userRole = req.session.role;
+    let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE id = ?";
+
+    let searchData = [patientID];
+
+    db.query(sqlquery, searchData, function(err, result){
+        if(err){
+            next(err);
+        }
+        else {
+            res.render('book.ejs', {slots: [], userRole: userRole, patient: result[0]});
+        }
+    });
+});
+
+// Route handler for selecting a date to book an appointment
+router.get('/book_date', isStaff, validateDate, function(req, res, next) {
+    const errors = validationResult(req);
+    let patientID = req.query.patientID;
+    let userRole = req.session.role;
+    if (!errors.isEmpty()) {
+        let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE id = ?";
+        
+        db.query(sqlquery, [patientID], function(err, result) {
+            if (err) return next(err);
+
+            return res.render('book.ejs', {slots: [], userRole: userRole, patient: result[0], errors: errors.array()});
+        });
+        return;
+    }
+    console.log(req.query);
+    let date = req.query.date;
+    let allSlots = populate_slots();
+    let sqlquery = "SELECT DATE_FORMAT(slot, '%H:%i') FROM appointments WHERE DATE(slot) = ?";
+
+    db.query(sqlquery, [date], function(err, result){
+        if(err){
+            next(err);
+        } 
+        else {
+            let bookedTimes = result.map(row => Object.values(row)[0]);
+
+            let availableSlots = allSlots.filter(slot => !bookedTimes.includes(slot));
+
+            let sqlquery = "SELECT id, fname, mname, lname FROM patients WHERE id = ?";
+            let patientID = req.query.patientID;
+            let userRole = req.session.role;
+
+            db.query(sqlquery, [patientID], function(err, result){
+                if(err){
+                    next(err);
+                }
+                else {
+                    res.render('book.ejs', {slots: availableSlots, userRole: userRole, date: date, patient: result[0]});
+                }
+            });
+        }
+    });
+});
+
+// Route handler for confirming a booking
+router.post('/confirm_booking', isStaff, function(req, res, next) {
+    let date = req.body.date;
+    let time = req.body.slot;
+    let userID = req.body.patientID;
+    let sqlquery = "INSERT INTO appointments (patientID, slot) VALUES (?, ?)";
+
+    let searchData = [userID, `${date} ${time}:00`];
+
+    db.query(sqlquery, searchData, function(err, result){
+        if(err){
+            next(err);
+        } 
+        else {
+            audit_log(null, req.session.userID, 'Booked Appointment', result.insertId, `Appointment booked for patient: ${userID}, for ${date} at ${time} by staff.`, req.ip);
+            res.render('success.ejs', {subject: 'Booking Confirmed', redirect: 'dashboard', redirectLink: '../staff/dashboard'});
+        }
+    });
+});
+
 
 // Export the router object so index.js can access it
 module.exports = router

@@ -8,6 +8,7 @@
 <body>
     <h1>Register for <%= appData.name %></h1>
     <form method="POST" action="register_patient">
+        <p>Username: <input id="username" type="text" name="username" /></p>
         <p>First Name: <input id="first" type="text" name="first" /></p>
         <p>Middle Name: <input id="middle" type="text" name="middle"></p>
         <p>Last Name: <input id="last" type="text" name="last" /></p>
@@ -16,5 +17,16 @@
         <p>Password: <input id="password" type="text" name="password" /></p>
         <input type="submit" value="Register" />
     </form>
+    <br>
+    <% if (typeof errors != 'undefined' && errors.length > 0) { %>
+        <div class="error-box" style="background: #ffdddd; padding: 10px; border: 1px solid red; margin-bottom: 10px;">
+            <h3>Please correct the following errors:</h3>
+            <ul>
+                <% errors.forEach(function(error) { %>
+                    <li><%= error.msg %></li>
+                <% }) %>
+            </ul>
+        </div>
+    <% } %>
 </body>
 </html>
