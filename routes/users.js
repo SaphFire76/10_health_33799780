@@ -120,10 +120,16 @@ router.post('/register_patient', validateRegistration, function (req, res, next)
 });
 
 const validateLogin = [
-    check('email')
+    check('username')
         .trim()
-        .isEmail().withMessage('Please enter a valid email.')
-        .normalizeEmail(),
+        .isLength({ min: 3, max: 20 }).withMessage('Username must be 3-20 chars.')
+        .isAlphanumeric().withMessage('Username must contain only letters and numbers.')
+        .escape(),
+
+    // check('email')
+    //     .trim()
+    //     .isEmail().withMessage('Please enter a valid email.')
+    //     .normalizeEmail(),
     
     check('password')
         .notEmpty().withMessage('Password is required.')
@@ -142,8 +148,10 @@ router.post('/login_patient', validateLogin, function (req, res, next) {
     }
     else {
         // Compare the password supplied with the password in the database
-        let sqlquery = "SELECT id, hashedPass FROM patients WHERE email=?";
-        let email = [req.body.email];
+        // let sqlquery = "SELECT id, hashedPass FROM patients WHERE email=?";
+        let sqlquery = "SELECT id, hashedPass FROM patients WHERE username=?";
+        // let email = [req.body.email];
+        let email = [req.body.username];
 
         db.query(sqlquery, email, (err, result) => {
             if(err){
@@ -160,7 +168,7 @@ router.post('/login_patient', validateLogin, function (req, res, next) {
                         next(err)
                     }
                     else if (isMatch == true) {
-                        audit_log(result[0].id, null, 'Login Success', null, `Patient logged in with email: ${req.sanitize(req.body.email)}`, req.ip);
+                        audit_log(result[0].id, null, 'Login Success', null, `Patient logged in with username: ${req.body.username}`, req.ip);
                         // Save user session here, when login is successful
                         req.session.userID = result[0].id;
                         req.session.role = 'patient';
@@ -184,8 +192,10 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
     }
     else {
         // Compare the password supplied with the password in the database
-        let sqlquery = "SELECT id, hashedPass FROM staff WHERE email=?";
-        let email = [req.body.email];
+        // let sqlquery = "SELECT id, hashedPass FROM staff WHERE email=?";
+        // let email = [req.body.email];
+        let sqlquery = "SELECT id, hashedPass FROM staff WHERE username=?";
+        let email = [req.body.username];
 
         db.query(sqlquery, email, (err, result) => {
             if(err){
@@ -202,7 +212,7 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
                         next(err)
                     }
                     else if (isMatch == true) {
-                        audit_log(null, result[0].id, 'Login Success', null, `Staff logged in with email: ${req.sanitize(req.body.email)}`, req.ip);
+                        audit_log(null, result[0].id, 'Login Success', null, `Staff logged in with username: ${req.body.username}`, req.ip);
                         // Save user session here, when login is successful
                         req.session.userID = result[0].id;
                         req.session.role = 'staff';
