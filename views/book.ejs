@@ -8,10 +8,10 @@
 <body>
     <% if (userRole === 'patient') { %>
         <h1>Book an appointment</h1>
-        <form action="/patient/book_date" method="GET">
+        <form action="/patient/book_date" method="POST">
     <% } else { %>
         <h1>Book an appointment for <%= patient.fname %> <%= patient.mname %> <%= patient.lname %></h1>
-        <form action="/staff/book_date" method="GET">
+        <form action="/staff/book_date" method="POST">
     <% } %>
         <%
             let tmrw = new Date();

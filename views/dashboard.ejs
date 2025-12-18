@@ -50,7 +50,10 @@
         <p><a href="../patient/book">Book an appointment</a></p>
     <% } %>
     <% if (userRole === 'staff') {%>
-        <p><a href="../staff/search_patients">Patients</a></p>
+        <p><a href="../staff/search_patients">Search Patients</a></p>
     <% } %>
+    <form action="logout" method="POST">
+        <button type="submit">Logout</button>
+    </form>
 </body>
 </html>

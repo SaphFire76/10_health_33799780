@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS appointments (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     patientID       INT NOT NULL,
     slot            DATETIME NOT NULL UNIQUE,
-    reason          VARCHAR(255),
+    reason          VARCHAR(500),
     FOREIGN KEY (patientID) REFERENCES patients(id));
 
 # Table for audit logs

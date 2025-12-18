@@ -1,6 +1,7 @@
 // Create a new router
 const express = require("express")
 const { check, validationResult } = require('express-validator');
+const { validateRegistration, validateLogin } = require('../middleware/validationLogic');
 const router = express.Router()
 const bcrypt = require('bcrypt');
 const env = require('dotenv').config();
@@ -8,6 +9,7 @@ const env = require('dotenv').config();
 // Function to redirect to login page if not logged in as patient
 const isPatient = (req, res, next) => {
     if (!req.session.userID || req.session.role != 'patient') {
+        // console.log("Not patient")
         res.redirect('../users/login') // redirect to the login page
     } else { 
         next (); // move to the next middleware function
@@ -17,68 +19,66 @@ const isPatient = (req, res, next) => {
 // Function to redirect to login page if not logged in as staff
 const isStaff = (req, res, next) => {
     if (!req.session.userID || req.session.role != 'staff') {
+        // console.log("Not staff")
         res.redirect('../users/login') // redirect to the login page
     } else { 
         next (); // move to the next middleware function
     }
 }
 
-const redirectLogin = (req, res, next) => {
-    if (!req.session.userID) {
-        res.redirect('../users/login') // redirect to the login page
-    } else { 
-        next (); // move to the next middleware function
-    } 
-}
-
 function audit_log(patientID, staffID, action, appointmentID, details, ip_address) {
-    let sqlquery = "INSERT INTO audit_logs (patientID, staffID, action, appointmentID, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)";
-    audit = [patientID, staffID, action, appointmentID, details, ip_address];
+    let sqlquery= "SELECT id, fname, mname, lname, email FROM";
+    let userID = null;
+    let role = null;
 
-    db.query(sqlquery, audit, () => {});
+    if (patientID !== null ) {
+        sqlquery += " patients WHERE id = ?";
+        userID = patientID;
+        role = 'Patient';
+    }
+    else if (staffID !== null) {
+        sqlquery += " staff WHERE id = ?";
+        userID = staffID;
+        role = 'Staff';
+    }
+
+    db.query(sqlquery, [userID], function(err, result){
+        if(err){
+            return;
+        }
+        else {
+            let fullName = result[0].fname + " " + (result[0].mname ? result[0].mname + " " : "") + result[0].lname;
+            details += `${role}: ${fullName}, with email: ${result[0].email}. `;
+
+            const saveLog = (details) => {
+                let sqlquery = "INSERT INTO audit_logs (patientID, staffID, action, appointmentID, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)";
+                const audit = [patientID, staffID, action, appointmentID, details, ip_address];
+
+                db.query(sqlquery, audit, () => {});
+                return;
+            }
+
+            if (appointmentID !== null) {
+                let sqlquery = "SELECT slot FROM appointments WHERE id = ?";
+                db.query(sqlquery, [appointmentID], function(err, result){
+                    if(err){
+                        return;
+                    }
+                    else {
+                        let slot = result[0].slot;
+                        details += `Appointment slot: ${slot}. `;
+
+                        saveLog(details);
+                    }
+                });
+            }
+            else {
+                saveLog(details);
+            }
+        }
+    });
 }
 
-const validateRegistration = [
-    // Username: Alphanumeric, reasonable length
-    check('username')
-        .trim()
-        .isLength({ min: 3, max: 20 }).withMessage('Username must be 3-20 chars.')
-        .isAlphanumeric().withMessage('Username must contain only letters and numbers.')
-        .escape(),
-
-    // Names: Letters only, clean up extra spaces
-    check('first')
-        .notEmpty().withMessage('First name is required.')
-        .matches(/^[a-zA-Z '\-]+$/).withMessage('Name must only contain letters, spaces, apostrophes, or hyphens.')
-        .escape(),
-    
-    check('middle')
-        .optional({ checkFalsy: true }) // Skips validation if field is empty
-        .matches(/^[a-zA-Z '\-]+$/).withMessage('Name must only contain letters, spaces, apostrophes, or hyphens.')
-        .escape(),
-    
-    check('last')
-        .notEmpty().withMessage('Last name is required.')
-        .matches(/^[a-zA-Z '\-]+$/).withMessage('Name must only contain letters, spaces, apostrophes, or hyphens.')
-        .escape(),
-
-    // Email: Must be valid email format + normalize
-    check('email')
-        .trim()
-        .isEmail().withMessage('Invalid email address.')
-        .normalizeEmail(),
-
-    // Phone: Check for numbers and length (UK/International)
-    check('phone')
-        .optional({ checkFalsy: true })
-        .trim()
-        .isMobilePhone('en-GB').withMessage('Invalid phone number.') // You can specify locale: .isMobilePhone('en-GB')
-        .escape(),
-
-    // Password: Strong requirements
-    check('password')
-        .isStrongPassword().withMessage('Password must contain 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 symbol.')
-];
 
 // Route handler for register page
 router.get('/register', function (req, res, next) {
@@ -122,21 +122,6 @@ router.post('/register_patient', validateRegistration, function (req, res, next)
     }
 });
 
-const validateLogin = [
-    check('username')
-        .trim()
-        .isLength({ min: 3, max: 20 }).withMessage('Username must be 3-20 chars.')
-        .isAlphanumeric().withMessage('Username must contain only letters and numbers.')
-        .escape(),
-
-    // check('email')
-    //     .trim()
-    //     .isEmail().withMessage('Please enter a valid email.')
-    //     .normalizeEmail(),
-    
-    check('password')
-        .notEmpty().withMessage('Password is required.')
-];
 
 // Route handler for login page
 router.get('/login', function (req, res, next) {
@@ -173,7 +158,7 @@ router.post('/login_patient', validateLogin, function (req, res, next) {
                         next(err)
                     }
                     else if (isMatch == true) {
-                        audit_log(result[0].id, null, 'Login Success', null, `Patient logged in with username: ${req.body.username}`, req.ip);
+                        audit_log(result[0].id, null, 'Login Success', null, '', req.ip);
                         // Save user session here, when login is successful
                         req.session.userID = result[0].id;
                         req.session.role = 'patient';
@@ -219,7 +204,7 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
                         next(err)
                     }
                     else if (isMatch == true) {
-                        audit_log(null, result[0].id, 'Login Success', null, `Staff logged in with username: ${req.body.username}`, req.ip);
+                        audit_log(null, result[0].id, 'Login Success', null, '', req.ip);
                         // Save user session here, when login is successful
                         req.session.userID = result[0].id;
                         req.session.role = 'staff';
@@ -233,16 +218,8 @@ router.post('/login_staff', validateLogin, function (req, res, next) {
             }
         })
     }
-})
+});
 
-// router.get('/logout', redirectLogin, (req,res) => {
-//     req.session.destroy(err => {
-//         if (err) {
-//             return res.redirect('../')
-//         }
-//         res.send('you are now logged out. <a href='+'../'+'>Home</a>');
-//     })
-// })
 
 // Export the router object so index.js can access it
 module.exports = {

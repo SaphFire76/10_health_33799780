@@ -15,7 +15,11 @@
         </button>
     </form>
     <h1>Change Appointment Time</h1>
-    <form action="/staff/change_date" method="GET">
+    <% if (role === 'staff') { %>
+        <form action="/staff/change_date" method="POST">
+    <% } else { %>
+        <form action="/patient/change_date" method="POST">
+    <% } %>
         <input type="hidden" name="appointment" value="<%= appointment %>">
         <%
             let tmrw = new Date();
@@ -25,9 +29,18 @@
             let max = new Date();
             max.setMonth(max.getMonth() + 6);
             max = max.toISOString().split('T')[0];
+
+            let defaultDate;
+
+            if (typeof date !== 'undefined') {
+                defaultDate = date;
+            } 
+            else {
+                defaultDate = tmrw;
+            }
         %>
         <p>What date do you prefer?</p>
-        <input type="date" id="date" name="date" >
+        <input type="date" id="date" name="date" value="<%= defaultDate %>" min="<%= tmrw %>" max="<%= max %>" required>
         <input type="submit" value="Find available slots">
     </form>
     <% if (slots.length != 0) { %>
