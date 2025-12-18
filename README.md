@@ -36,7 +36,7 @@ A robust web application for managing doctor/patient appointments. This system a
 
 ## Project Structure
 
-```text
+```
 ├── middleware/         # Custom middleware
 ├── public/             # Static assets (CSS, images)
 ├── routes/             # Route handlers
@@ -49,7 +49,7 @@ A robust web application for managing doctor/patient appointments. This system a
 ├── insert_test_data.sql# Sample data for testing
 ├── index.js            # Entry point of the application
 └── .env                # Environment variables (DB credentials)
-
+```
 ## Installation & Setup
 
 ### 1. Prerequisites
