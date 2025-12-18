@@ -54,8 +54,8 @@ A robust web application for managing doctor/patient appointments. This system a
 
 ### 1. Prerequisites
 Ensure you have the following installed on your machine:
-* [Node.js]
-* [MySQL Server]
+* Node.js
+* MySQL Server
 
 ### 2. Clone the Repository
 Download the project code to your local machine:
@@ -87,7 +87,7 @@ HEALTH_PASSWORD=<your password>
 HEALTH_DATABASE='health'
 OPENWEATHER_API_KEY=<your key>
 PEPPER=<your secret pepper>
-
+```
 ### 6. Run the Application
 Start the server:
 ```
