@@ -41,7 +41,7 @@ A robust web application for managing doctor/patient appointments. This system a
 ├── public/             # Static assets (CSS, images)
 ├── routes/             # Route handlers
 │   ├── main.js         # Public routes (Home, About)
-│   ├── users.js        # Auth routes (Login, Register, Logout)
+│   ├── users.js        # Auth routes (Login, Register)
 │   ├── patient.js      # Patient-specific logic (Booking, Profile)
 │   └── staff.js        # Staff-specific logic (Search, Management)
 ├── views/              # EJS Templates (HTML views)
